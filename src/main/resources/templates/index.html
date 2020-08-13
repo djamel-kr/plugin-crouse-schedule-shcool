@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="stylesheet" th:href="@{/bootstrap/dist/css/bootstrap.min.css}">
+    <title>App</title>
+</head>
+<body class="bg-light">
+
+<div id="app" class="container">
+    <div class="row">
+        <div class="col">
+            <div class="card mt-5 border-0 shadow-lg rounded-0">
+                <div class="card-header">
+                    <h4 class="card-title">Emploie</h4>
+                </div>
+                <div class="card-body">
+                    <div class="form-group">
+                        <label>Groupe</label>
+                        <select v-model="selectedGroupeId" class="form-control" id="groupe" @change="groupeChange">
+                            <option value="0">select :</option>
+                            <option v-for="groupe in groupeList" :key="groupe.id" :value="groupe.id"
+                                    v-text="groupe.name"></option>
+                        </select>
+                    </div>
+
+                    <hr>
+
+                    <div v-if="selectedGroupeId !== 0">
+
+                        <form>
+                            <div class="row">
+                                <div class="col">
+                                    <label>Date</label>
+                                    <input v-model="form.date" type="date" class="form-control" required>
+                                </div>
+                                <div class="col">
+                                    <label>Heure debut</label>
+                                    <input v-model="form.heureDebut" type="time" class="form-control" required>
+                                </div>
+                                <div class="col">
+                                    <label>Heur fin</label>
+                                    <input v-model="form.heureFin" type="time" class="form-control" required>
+                                </div>
+                                <div class="col">
+                                    <label>Salle</label>
+                                    <select v-model="form.salle" class="form-control" required>
+                                        <option v-for="salle in salleList" :key="salle.id" :value="salle.id"
+                                                v-text="'salle ' + salle.numero"></option>
+                                    </select>
+                                </div>
+                                <div class="col">
+                                    <label style="visibility: hidden">ajouter</label>
+                                    <button class="btn btn-block btn-primary"
+                                            @click.prevent="add()"
+                                            :disabled="checkAdd()">
+                                        ajouter
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+
+                        <hr>
+
+                        <p>Nombre de Séance :
+                            <span id="course-number"
+                                  v-text="selectedGroupe === null ? '0' : selectedGroupe.nombreCours">0</span>
+                            / <span
+                                    id="current-course-number" v-text="items.length"></span>
+                        </p>
+                        <ul class="list-group mb-4">
+                            <li class="list-group-item" v-for="item in items" :key="item.id_emploi">
+                                {{ item.dateDebut }} - {{ item.dateFin }} - Salle {{ item.salle.numero }}
+                            </li>
+                        </ul>
+
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="application/javascript" src="jquery/dist/jquery.min.js" th:href="@{/jquery/dist/jquery.min.js}"></script>
+<script type="application/javascript" src="bootstrap/dist/js/bootstrap.min.js"
+        th:href="@{/bootstrap/dist/js/bootstrap.min.js}"></script>
+<script type="application/javascript" src="vue/dist/vue.min.js" th:href="@{/vue/dist/vue.min.js}"></script>
+<script type="application/javascript" src="axios/dist/axios.min.js" th:href="@{/axios/dist/axios.min.js}"></script>
+<script th:inline="javascript">
+
+    class Emploie {
+        constructor(dateDebut, dateFin, salle, groupe) {
+            this.dateDebut = dateDebut;
+            this.dateFin = dateFin;
+            this.salleId = salle;
+            this.groupeId = groupe;
+        }
+    }
+
+    new Vue({
+        data: {
+            groupeList: [[${groupeList}]],
+            salleList: [[${salleList}]],
+            form: {
+                date: null,
+                heureDebut: null,
+                heureFin: null,
+                salle: 1
+            },
+            selectedGroupeId: 0,
+            selectedGroupe: null,
+            items: []
+        },
+        methods: {
+            groupeChange() {
+                this.getItems();
+                this.clearForm();
+                this.selectedGroupe = this.selectedGroupeId === 0 ? null : this.groupeList.filter(g => g.id === this.selectedGroupeId)[0];
+            },
+            formNotEmpty() {
+                return this.form.date !== null && this.form.heureDebut !== null && this.form.heureFin !== null;
+            },
+            checkAdd() {
+                return (this.selectedGroupe === null ? true : this.selectedGroupe.nombreCours <= this.items.length);
+            },
+            add() {
+                if (this.formNotEmpty()) {
+                    var emploie = new Emploie(this.form.date + ' ' + this.form.heureDebut, this.form.date + ' ' + this.form.heureFin, this.form.salle, this.selectedGroupeId);
+                    var parent = this;
+                    axios({
+                        method: "post",
+                        url: "/ajax/saveEmploie",
+                        data: JSON.stringify(emploie),
+                        headers: {
+                            'Content-Type': 'application/json',
+                        }
+                    }).then(function (response) {
+                        alert("emploie a été bien ajouter");
+                        parent.clearForm();
+                        parent.getItems();
+                    }).catch(function (error) {
+                        try {
+                            alert(error.response.data);
+                        } catch (e) {
+                        }
+                    })
+
+                } else {
+                    alert("Remplir le formulaire !")
+                }
+
+            },
+            clearForm() {
+                this.form = {
+                    date: null,
+                    heureDebut: null,
+                    heureFin: null,
+                    salle: 1
+                }
+            },
+            getItems() {
+                this.items = [];
+                var parent = this;
+                axios.get("/ajax/getEmploie/" + this.selectedGroupeId)
+                    .then(function (response) {
+                        parent.items = response.data;
+                    })
+            }
+        }
+    }).$mount("#app");
+
+</script>
+</body>
+</html>
