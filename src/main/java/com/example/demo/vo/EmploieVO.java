@@ -1,13 +1,23 @@
 package com.example.demo.vo;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.deser.std.DateDeserializers;
+
 import java.util.Date;
 
 public class EmploieVO {
 
-
+    @JsonDeserialize(using = DateDeserializers.DateDeserializer.class)
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm")
     private Date dateDebut;
+
+    @JsonDeserialize(using = DateDeserializers.DateDeserializer.class)
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm")
     private Date dateFin;
+
     private Long groupeId;
+
     private Long salleId;
 
     public Date getDateDebut() {

@@ -1,4 +1,7 @@
 package com.example.demo.repository;
 
-public class SalleRepository {
+import com.example.demo.domain.Salle;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface SalleRepository extends JpaRepository<Salle, Long> {
 }
